@@ -1,0 +1,44 @@
+name: Build Nova Browser (Gecko Artifact + Zip)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-firefox:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio de Nova
+        uses: actions/checkout@v4
+
+      - name: Instalar dependencias del sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip curl mercurial git build-essential zip
+
+      - name: Descargar código fuente de Firefox (Gecko)
+        run: |
+          hg clone https://hg.mozilla.org/mozilla-central firefox-source
+
+      - name: Configurar Artifact Build
+        run: |
+          cd firefox-source
+          echo "ac_add_options --enable-application=browser" > .mozconfig
+          echo "ac_add_options --enable-artifact-builds" >> .mozconfig
+
+      - name: Compilar con Artifacts
+        run: |
+          cd firefox-source
+          ./mach build
+
+      - name: Comprimir en un archivo ZIP
+        run: |
+          cd firefox-source/obj-*/dist/
+          zip -r ../../../NovaBrowser-Linux.zip firefox/
+
+      - name: Guardar paquete ZIP como Artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovaBrowser-Linux-Package
+          path: NovaBrowser-Linux.zip
